@@ -1,0 +1,105 @@
+
+function Run(d) {
+
+  var __genome = <%= genome %>;
+  var __decorator = <%= decorator %>;
+
+  /* Genetic functions */
+
+  function fitness(genome, ctx) {
+    return (<%= fitness %>)(__decorator ? __decorator(genome, ctx) : genome, ctx);
+  }
+  
+  function crossover(mother, father, child1, child2) {
+    return (<%= crossover %>)(mother, father, child1, child2);
+  }
+
+  function mutate(genome, ctx) {
+    return (<%= mutate %>)(genome, ctx);
+  }
+
+  /* Other */
+
+  function sort(a, b) {
+    return b - a;
+  }
+
+  function generatePopulation(size, ctx) {
+    var population = [];
+    for(var i = 0; i < size; i++) {
+      var genome = __genome;
+      population.push({
+        genome: genome,
+        score: fitness(genome, ctx),
+        ctx: ctx
+      });
+    }
+    population.sort(function(a, b) {
+      return sort(a.score, b.score);
+    });
+    return population;
+  }
+
+  // --
+
+  function randomBetween(min, max, precision) {
+    return applyPrecision(Math.random() * (max - min) + min, precision ? precision : 0);
+  }
+
+  function applyPrecision(number, precision) {
+    return +(number.toFixed(precision));
+  }
+
+  function getPrecision(number) {
+    if((number + '').split('.').length === 1) {  
+      return 0;
+    } else {
+      return (number + '').split('.')[1].length;
+    }
+  }
+
+  // --
+
+  var ctx = d.context;
+  var opts = d.opts;
+  var population = d.population || generatePopulation(opts.nIndividuals, ctx);
+
+  /* Iterations */
+
+  var countToMate = Math.floor(population.length * opts.constMatePercent); // 1000 * 0.1 = 100
+  var offspringCount = countToMate * 2; // 100 * 2 = 200
+  var matingPopulationSize = Math.floor(population.length * opts.constMatingPopulationPercent); // 1000 * 0.5 = 500
+  
+  for(var spring = 0; spring < opts.isolationTime; spring++) {
+    var offspringIndex = population.length - offspringCount;
+
+    /* mate and form the next generation */
+    for(var motherID = 0; motherID < countToMate; motherID++) {
+      var fatherID = Math.floor(Math.random() * matingPopulationSize);
+      crossover(
+        population[motherID].genome,
+        population[fatherID].genome,
+        population[offspringIndex].genome,
+        population[offspringIndex + 1].genome);
+      /* mutate, if needed */
+      if(Math.random() < opts.constMutationPercent) {
+        mutate(population[offspringIndex].genome, ctx);
+      }
+      /* score the two new offspring */
+      population[offspringIndex].score = fitness(population[offspringIndex].genome, ctx);
+      population[offspringIndex + 1].score = fitness(population[offspringIndex + 1].genome, ctx);
+      /* move to the next one */
+      offspringIndex += 2;
+    }
+
+    /* Sort population */
+    population.sort(function(a, b) {
+      return sort(a.score, b.score);
+    });    
+  }
+
+  return {
+    id: d.id,
+    population: population
+  };
+}

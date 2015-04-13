@@ -274,6 +274,7 @@ function Run(d) {
 
     if(d.population == null) {
         population = [];
+
         for(var i = 0; i < d.individuals; i++) {
             var genome = {};
             for(var gene in $genome) {
@@ -281,10 +282,13 @@ function Run(d) {
                 for(var property in $genome[gene]) {
                     //if(property instanceof Object) {
                         genome[gene][property] = +randomBetween($genome[gene][property]["min"], $genome[gene][property]["max"]).toFixed($genome[gene][property]["precision"]);
+                        // console.log(genome[gene][property]);
                     //}
                 }
             }
+            // console.log(genome);
             var score = fitness($scope, genome);
+            // console.log(score);
             population.push({
                 'data' : genome,
                 'score' : score
